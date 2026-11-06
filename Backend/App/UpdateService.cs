@@ -16,8 +16,8 @@ namespace Segra.Backend.App
     public static class UpdateService
     {
         public static UpdateInfo? LatestUpdateInfo { get; private set; } = null;
-        public static GithubSource Source = new("https://github.com/Segergren/Segra", null, false);
-        public static GithubSource BetaSource = new("https://github.com/Segergren/Segra", null, true);
+        public static GithubSource Source = new(ForkConfig.UpdateRepositoryUrl, null, false);
+        public static GithubSource BetaSource = new(ForkConfig.UpdateRepositoryUrl, null, true);
         public static UpdateManager UpdateManager { get; private set; } = new(Source);
 
 #if LOCAL_BUILD
