@@ -30,6 +30,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRef, useEffect, useLayoutEffect, useState, useMemo } from 'react';
 import Button from './Components/Button';
+import logo from './fayo/logo.svg';
 import { MenuItemId, DEFAULT_MENU_ITEMS, menuItemHasContent } from './Models/types';
 
 interface MenuProps {
@@ -163,12 +164,16 @@ export default function Menu({ selectedMenu, onSelectMenu }: MenuProps) {
     Object.keys(clippingProgress).length === 0;
 
   return (
-    <div className="bg-base-300 w-56 h-screen flex flex-col border-r border-base-400">
+    <div className="bg-base-200 w-56 h-screen flex flex-col border-r border-base-400">
+      <div className="flex items-center gap-2.5 px-5 pt-5 pb-1 text-lg font-medium">
+        <img src={logo} alt="" className="h-6" />
+        Segra
+      </div>
       {/* Menu Items */}
       <div className="flex flex-col px-4 text-left py-2 relative mt-2">
         {/* Selection indicator rectangle */}
         <div
-          className={`absolute w-1.5 bg-primary rounded-r ${
+          className={`absolute hidden w-1.5 bg-primary rounded-r ${
             indicatorAnimated ? 'transition-all duration-200 ease-in-out' : ''
           }`}
           style={{
@@ -186,7 +191,7 @@ export default function Menu({ selectedMenu, onSelectMenu }: MenuProps) {
               id === 'Highlights' ? (
                 <Button
                   variant="nav"
-                  className={`justify-between ${isActive ? 'text-primary' : ''}`}
+                  className={`justify-between ${isActive ? '!bg-base-100 !border-base-400 text-primary' : ''}`}
                   onMouseDown={() => onSelectMenu(id)}
                 >
                   <span className="flex items-center gap-2">
@@ -216,7 +221,7 @@ export default function Menu({ selectedMenu, onSelectMenu }: MenuProps) {
               ) : (
                 <Button
                   variant="nav"
-                  className={isActive ? 'text-primary' : ''}
+                  className={isActive ? '!bg-base-100 !border-base-400 text-primary' : ''}
                   onMouseDown={() => onSelectMenu(id)}
                 >
                   <Icon className="w-5 h-5" />

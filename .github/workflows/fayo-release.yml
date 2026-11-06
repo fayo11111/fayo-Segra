@@ -102,7 +102,7 @@ jobs:
       # Same pack id ("Segra") as upstream so install path and data stay the same;
       # the update source is compiled into the app (Backend/App/ForkConfig.cs).
       - name: Package with vpk (unsigned)
-        run: vpk pack -u Segra -v ${{ env.new_version }} -p ./publish -e Segra.exe -o ./output --packTitle "Segra" --noPortable -i ./Resources/icon.ico -s ./Resources/splash.png --splashProgressColor "#fecb00" --framework webview2,vcredist143-x64
+        run: vpk pack -u Segra -v ${{ env.new_version }} -p ./publish -e Segra.exe -o ./output --packTitle "Segra" --noPortable -i ./Resources/icon.ico -s ./Resources/splash.png --splashProgressColor "#f5f5f5" --framework webview2,vcredist143-x64
         shell: pwsh
 
       - name: List output
