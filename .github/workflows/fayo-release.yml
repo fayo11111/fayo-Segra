@@ -1,0 +1,130 @@
+# Fork build (fayo): builds Segra on Windows WITHOUT code signing, packages it with Velopack
+# and publishes a GitHub Release with Segra-win-Setup.exe in this fork.
+# The upstream workflows (create-release.yml / create-prerelease.yml) need secrets this fork
+# does not have and are intentionally left untouched.
+name: Fayo Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fayo]
+    paths-ignore:
+      - '**.md'
+
+concurrency:
+  group: fayo-release
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: https://github.com/Segergren/Segra.git
+  VERSION_SUFFIX: fayo
+
+jobs:
+  build_and_release:
+    runs-on: windows-2025-vs2026
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Version = latest upstream stable tag contained in this build + "-fayo.<run number>",
+      # e.g. 1.9.7-fayo.12. The run number keeps every fork build strictly increasing for Velopack.
+      - name: Determine Version
+        id: get_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags "$UPSTREAM_REPO" 'refs/tags/v*:refs/tags/v*' || echo "::warning::Could not fetch upstream tags"
+          base=$(git tag --merged HEAD -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V | tail -n1 || true)
+          if [ -z "$base" ]; then base="0.0.0"; fi
+          new_version="${base}-${VERSION_SUFFIX}.${GITHUB_RUN_NUMBER}"
+          echo "new_version=$new_version" >> "$GITHUB_ENV"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "Version: $new_version"
+
+      - name: Update Frontend version
+        working-directory: ./Frontend
+        shell: pwsh
+        run: |
+          $packageJson = Get-Content package.json -Raw | ConvertFrom-Json
+          $packageJson.version = $env:new_version
+          $packageJson | ConvertTo-Json -Depth 100 | Set-Content package.json -NoNewline
+
+      - name: Build frontend; restore backend and install vpk in parallel
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $vpkJob = Start-Job {
+            dotnet tool install -g vpk --version 1.2.161
+            if ($LASTEXITCODE -ne 0) { throw "vpk install exited $LASTEXITCODE" }
+          }
+          $restoreJob = Start-Job -ArgumentList $PWD.Path {
+            param($root)
+            Set-Location $root
+            dotnet restore -r win-x64
+            if ($LASTEXITCODE -ne 0) { throw "dotnet restore exited $LASTEXITCODE" }
+          }
+
+          Push-Location Frontend
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw "npm ci exited $LASTEXITCODE" }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "npm run build exited $LASTEXITCODE" }
+          Pop-Location
+
+          $destination = "./Resources/wwwroot"
+          if (-Not (Test-Path -Path $destination)) { New-Item -ItemType Directory -Path $destination -Force | Out-Null }
+          Remove-Item -Path "$destination\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path "./Frontend/dist/*" -Destination $destination -Recurse -Force
+
+          $ErrorActionPreference = 'Continue'
+          Write-Host "=== vpk tool install ==="
+          Receive-Job $vpkJob -Wait 2>&1 | ForEach-Object { Write-Host $_ }
+          Write-Host "=== dotnet restore -r win-x64 ==="
+          Receive-Job $restoreJob -Wait 2>&1 | ForEach-Object { Write-Host $_ }
+          if ($vpkJob.State -ne 'Completed') { throw "vpk install job failed (state: $($vpkJob.State))" }
+          if ($restoreJob.State -ne 'Completed') { throw "dotnet restore job failed (state: $($restoreJob.State))" }
+
+      - name: Publish the App
+        run: dotnet publish Segra.csproj -c Release -f net10.0-windows10.0.19041.0 --self-contained -r win-x64 -o publish --no-restore -p:Version=${{ env.new_version }}
+        shell: pwsh
+
+      - name: Publish hotkey broker
+        run: dotnet publish HotkeyBroker/Segra.Hotkeys/Segra.Hotkeys.csproj -c Release -f net10.0-windows10.0.19041.0 -r win-x64 -o publish --no-restore
+        shell: pwsh
+
+      # Same pack id ("Segra") as upstream so install path and data stay the same;
+      # the update source is compiled into the app (Backend/App/ForkConfig.cs).
+      - name: Package with vpk (unsigned)
+        run: vpk pack -u Segra -v ${{ env.new_version }} -p ./publish -e Segra.exe -o ./output --packTitle "Segra" --noPortable -i ./Resources/icon.ico -s ./Resources/splash.png --splashProgressColor "#fecb00" --framework webview2,vcredist143-x64
+        shell: pwsh
+
+      - name: List output
+        run: Get-ChildItem ./output | Format-Table Name, Length
+        shell: pwsh
+
+      # Not marked as prerelease: the app's stable channel only sees non-prerelease GitHub releases.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.new_version }}
+          target_commitish: ${{ github.sha }}
+          name: "Segra v${{ env.new_version }}"
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          body: |
+            Fork build of Segra (unsigned), commit ${{ github.sha }}.
+            Download **Segra-win-Setup.exe** below. Installed apps update themselves from this fork's releases only.
+          files: |
+            ./output/Segra-win-Setup.exe
+            ./output/RELEASES
+            ./output/releases.win.json
+            ./output/assets.win.json
+            ./output/Segra-${{ env.new_version }}-full.nupkg

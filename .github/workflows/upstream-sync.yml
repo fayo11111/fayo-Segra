@@ -1,0 +1,88 @@
+# Weekly check for new upstream (Segergren/Segra) commits.
+# If there are any, mirrors them onto `main` (best effort) and opens ONE pull request
+# upstream main -> fayo. Never merges automatically.
+# Note: scheduled workflows only run from the repository's default branch (set it to `fayo`).
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '23 5 * * 1' # Mondays 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM_OWNER: Segergren
+  UPSTREAM_REPO: Segra
+  UPSTREAM_BRANCH: main
+  TARGET_BRANCH: fayo
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - name: Check for new upstream commits
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch "https://github.com/${UPSTREAM_OWNER}/${UPSTREAM_REPO}.git" "${UPSTREAM_BRANCH}:refs/remotes/upstream/${UPSTREAM_BRANCH}"
+          count=$(git rev-list --count "HEAD..upstream/${UPSTREAM_BRANCH}")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "New upstream commits not in ${TARGET_BRANCH}: $count"
+          {
+            echo "log<<EOF"
+            git log --no-merges --format='- %s (%h)' "HEAD..upstream/${UPSTREAM_BRANCH}" | head -n 100
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Keeps `main` a clean mirror of upstream. Best effort: GitHub refuses this with the
+      # workflow token when upstream changed files under .github/workflows; the PR below still works.
+      - name: Mirror upstream onto main (best effort)
+        if: steps.check.outputs.count != '0'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${GITHUB_REPOSITORY}/merge-upstream" -f branch=main
+
+      - name: Open pull request (if none is open)
+        if: steps.check.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.check.outputs.count }}
+          LOG: ${{ steps.check.outputs.log }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$TARGET_BRANCH" --state open \
+            --json number,headRepositoryOwner,headRefName \
+            --jq "[.[] | select(.headRepositoryOwner.login == \"${UPSTREAM_OWNER}\" or .headRefName == \"upstream-sync\")] | .[0].number // empty")
+          if [ -n "$existing" ]; then
+            echo "PR #$existing is already open and tracks upstream automatically. Nothing to do."
+            exit 0
+          fi
+
+          body=$(printf '%s\n\n%s\n\n%s\n' \
+            "Upstream ${UPSTREAM_OWNER}/${UPSTREAM_REPO} has ${COUNT} new commit(s)." \
+            "$LOG" \
+            "Review, then merge with **Create a merge commit** (not squash). Merging triggers the Fayo Release workflow. Conflicts: start a new Claude Code session (see UPDATING.md).")
+          title="Upstream sync: ${COUNT} new commit(s) from ${UPSTREAM_OWNER}/${UPSTREAM_REPO}"
+
+          # Preferred: PR straight from the upstream branch (nothing is pushed, so no workflow-permission issues).
+          if gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="$title" -f body="$body" \
+               -f head="${UPSTREAM_OWNER}:${UPSTREAM_BRANCH}" -f base="$TARGET_BRANCH" --jq .html_url; then
+            exit 0
+          fi
+
+          # Fallback: push upstream into a local branch and open the PR from there.
+          echo "::warning::Cross-repo PR failed, falling back to an upstream-sync branch"
+          git push --force origin "refs/remotes/upstream/${UPSTREAM_BRANCH}:refs/heads/upstream-sync"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base "$TARGET_BRANCH" --head upstream-sync --title "$title" --body "$body"
