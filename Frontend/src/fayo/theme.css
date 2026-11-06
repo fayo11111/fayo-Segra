@@ -54,3 +54,104 @@ html .highlight-border {
   background: var(--color-base-400);
   animation: none;
 }
+
+/* Session banner rows (ContentPage list view + SessionStats) */
+.fayo-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fayo-rows > .card {
+  flex-direction: row;
+  height: 120px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+.fayo-rows > .card > figure {
+  width: 280px;
+  flex: none;
+  aspect-ratio: auto;
+  border: 0;
+  background: none;
+  border-radius: var(--radius-box) 0 0 var(--radius-box);
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, #000 55%, transparent);
+}
+.fayo-rows > .card > figure img {
+  object-fit: cover;
+}
+.fayo-rows > .card > figure > span.bottom-2 {
+  display: none;
+}
+.fayo-rows .card-body {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 180px 104px 32px;
+  grid-template-areas: 'icon title score dur menu' 'icon meta score dur menu';
+  align-content: center;
+  align-items: center;
+  gap: 2px 20px;
+  padding: 0 16px 0 4px;
+  border: 0;
+}
+.fayo-rows .card-body > div:first-child {
+  display: contents;
+}
+.fayo-rows .card-body > div:first-child > :first-child {
+  grid-area: title;
+  font-size: 15px;
+  color: var(--color-base-content);
+}
+.fayo-rows .card-body > div:first-child > .dropdown {
+  grid-area: menu;
+}
+.fayo-rows .card-body > div:nth-child(2) {
+  grid-area: meta;
+  position: relative;
+  font: 12px/20px var(--font-mono);
+  color: #8a8a8a;
+}
+.fayo-icon {
+  grid-area: icon;
+  align-self: start;
+}
+.fayo-icon img {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+}
+.fayo-score {
+  grid-area: score;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 72px;
+  justify-content: center;
+  border-left: 1px solid rgb(255 255 255 / 0.06);
+  font-family: var(--font-mono);
+  color: #555;
+}
+.fayo-score > span:first-child {
+  color: var(--color-base-content);
+}
+.fayo-score > span:nth-child(2) {
+  font: 12px/20px var(--font-sans);
+  padding: 0 8px;
+  border-radius: 4px;
+}
+.fayo-score small {
+  font-size: 11px;
+  color: #8a8a8a;
+}
+.fayo-dur {
+  grid-area: dur;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-field);
+  background: var(--color-base-100);
+  font: 12px var(--font-mono);
+  color: var(--color-base-content);
+}

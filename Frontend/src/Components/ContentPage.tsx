@@ -5,7 +5,8 @@ import { Content, ContentType } from '../Models/types';
 import { useScroll } from '../Context/ScrollContext';
 import { useLayoutEffect, useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { FileUp, Merge, Trash2 } from 'lucide-react';
+import { FileUp, LayoutGrid, List, Merge, Trash2 } from 'lucide-react';
+import SessionStats from '../fayo/SessionStats';
 import { AnimatePresence, motion } from 'framer-motion';
 import { sendMessageToBackend } from '../Utils/MessageUtils';
 import ContentFilters, { ALL_GAMES, GameOption, IMPORTED, SortOption } from './ContentFilters';
@@ -86,6 +87,14 @@ export default function ContentPage({
       return 'newest';
     }
   });
+
+  // Fork: banner rows (default) or the upstream grid on the sessions page
+  const [gridView, setGridView] = useState(() => localStorage.getItem('sessions-view') === 'grid');
+  const isRows = sectionId === 'sessions' && !gridView;
+  const toggleView = (grid: boolean) => {
+    setGridView(grid);
+    localStorage.setItem('sessions-view', grid ? 'grid' : 'rows');
+  };
 
   const gameOptions = useMemo(() => {
     const iconFor = (item: Content): string | null => {
@@ -576,8 +585,12 @@ export default function ContentPage({
       onMouseDown={handleMarqueeMouseDown}
     >
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
+        <div>
           <h1 className="text-[1.75rem] font-bold">{title}</h1>
+          <p className="font-mono text-xs text-gray-400">
+            {contentItems.length} {title.toLowerCase()} ·{' '}
+            {(contentItems.reduce((sum, c) => sum + c.fileSizeKb, 0) / 1048576).toFixed(1)} GB
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {(sectionId === 'sessions' || sectionId === 'replayBuffer') && (
@@ -600,11 +613,32 @@ export default function ContentPage({
             selectedGame={selectedGame}
             sortOption={sortOption}
           />
+          {sectionId === 'sessions' && (
+            <div className="join">
+              {[false, true].map((grid) => (
+                <Button
+                  key={String(grid)}
+                  variant="primary"
+                  size="sm"
+                  className={`join-item h-8 ${grid === gridView ? 'bg-base-100 text-base-content' : ''}`}
+                  onClick={() => toggleView(grid)}
+                >
+                  {grid ? <LayoutGrid size={16} /> : <List size={16} />}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {contentItems.length > 0 || hasProgress ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[90rem]:grid-cols-4 min-[112.5rem]:grid-cols-5 gap-4">
+        <div
+          className={
+            isRows
+              ? 'fayo-rows'
+              : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 min-[90rem]:grid-cols-4 min-[112.5rem]:grid-cols-5 gap-4'
+          }
+        >
           {isProgressVisible && progressCardElement}
 
           {filteredItems.map((video) => (
@@ -616,6 +650,14 @@ export default function ContentPage({
               isSelected={selectedItems.has(video.id)}
               isSelectionMode={isCtrlPressed || selectedItems.size > 0 || marqueeRect !== null}
               isHighlighted={video.id === highlightedContentId}
+              extra={
+                isRows && (
+                  <SessionStats
+                    content={video}
+                    icon={gameOptions.find((g) => g.key === video.game)?.icon}
+                  />
+                )
+              }
             />
           ))}
         </div>

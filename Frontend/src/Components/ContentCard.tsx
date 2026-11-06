@@ -53,6 +53,7 @@ interface VideoCardProps {
   isSelected?: boolean; // Whether this card is selected in multi-select mode
   isSelectionMode?: boolean; // Whether multi-select mode is active
   isHighlighted?: boolean; // Briefly pulse the card to draw attention (e.g. after import)
+  extra?: React.ReactNode; // Fork: extra cells for the session row layout
 }
 
 export default function ContentCard({
@@ -63,6 +64,7 @@ export default function ContentCard({
   isSelected = false,
   isSelectionMode = false,
   isHighlighted = false,
+  extra,
 }: VideoCardProps) {
   const { enableAi, showNewBadgeOnVideos, airplaneMode } = useSettings();
   const { cacheFolder, content: allContent } = useAppState();
@@ -733,6 +735,7 @@ export default function ContentCard({
             </div>
           )}
         </div>
+        {extra}
       </div>
 
       {contextMenuPosition && (
