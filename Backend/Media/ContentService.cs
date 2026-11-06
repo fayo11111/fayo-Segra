@@ -75,7 +75,8 @@ namespace Segra.Backend.Media
                     IgdbId = igdbId,
                     GameExePath = gameExePath,
                     IsImported = isImported,
-                    Compressed = compressed
+                    Compressed = compressed,
+                    Result = type == Content.ContentType.Session ? Games.GameResult.Take(gameExePath) : null
                 };
 
                 string metadataJson = JsonSerializer.Serialize(metadataContent, _jsonOptions);

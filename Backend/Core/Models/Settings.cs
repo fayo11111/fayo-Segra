@@ -1293,6 +1293,8 @@ namespace Segra.Backend.Core.Models
 
         public int? IgdbId { get; set; }
 
+        public Segra.Backend.Games.GameResult? Result { get; set; }
+
         // Full path of the game exe this video was recorded from, for diagnostics.
         private string? _gameExePath;
         public string? GameExePath

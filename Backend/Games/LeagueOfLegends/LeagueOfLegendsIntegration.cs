@@ -83,6 +83,7 @@ namespace Segra.Backend.Games.LeagueOfLegends
                 }
 
                 ProcessPlayerStats(currentPlayer);
+                GameResult.ReportLeague(ExePath, root, currentPlayer);
             }
             catch (HttpRequestException)
             {

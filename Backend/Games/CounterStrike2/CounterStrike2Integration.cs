@@ -131,6 +131,7 @@ namespace Segra.Backend.Games.CounterStrike2
                     string body = await ReadRequestBodyAsync(context.Request);
                     GameState gameState = DeserializeState(body);
                     ProcessGameState(gameState);
+                    GameResult.ReportCs2(ExePath, body);
                 }
             }
             catch (Exception ex)
