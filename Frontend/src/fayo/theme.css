@@ -1,0 +1,56 @@
+/* Fork theme (Obsidian): monochrome, flat, Geist. Overrides the daisyUI 'segra' theme tokens;
+   `html:root` outranks the upstream theme selectors, so upstream styles stay untouched. */
+@font-face {
+  font-family: 'Geist';
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-latin-wght-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-mono-latin-wght-normal.woff2') format('woff2');
+}
+
+html:root {
+  --color-base-100: #1a1a1a;
+  --color-base-200: #070707;
+  --color-base-300: #121212;
+  --color-base-400: #222222;
+  --color-base-content: #f5f5f5;
+  --color-primary: #f5f5f5;
+  --color-primary-content: #070707;
+  --color-accent: #f5f5f5;
+  --color-secondary: #121212;
+  --color-neutral: #1a1a1a;
+  --color-custom: #1a1a1a;
+  --color-info: #8a8a8a;
+  --color-success: #3dd68c;
+  --color-warning: #f5a524;
+  --color-error: #ff5a5a;
+  --radius-box: 10px;
+  --radius-field: 8px;
+  --radius-selector: 4px;
+  --font-sans: 'Geist', Inter, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  /* Neutral grays instead of Tailwind's blue-tinted ones */
+  --color-gray-200: #f5f5f5;
+  --color-gray-300: #8a8a8a;
+  --color-gray-400: #8a8a8a;
+  --color-gray-500: #555555;
+  --color-gray-600: #555555;
+  --color-gray-700: #262626;
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum' 1;
+}
+
+html .btn {
+  font-weight: 500;
+}
+html .highlight-border {
+  background: var(--color-base-400);
+  animation: none;
+}

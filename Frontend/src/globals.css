@@ -1,4 +1,5 @@
 ﻿@import 'tailwindcss';
+@import './fayo/theme.css';
 @plugin "daisyui" {
   themes: false;
   exclude: scrollbar;
